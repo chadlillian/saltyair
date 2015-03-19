@@ -1,0 +1,7 @@
+#!/bin/bash
+
+filename=$1
+for i in [0-9]*.txt;do
+	echo $i
+	cat $i>>$filename
+done

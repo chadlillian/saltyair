@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.grid .tick {
+	    stroke: lightgrey;
+		    opacity: 0.7;
+}
+.grid path {
+	      stroke-width: 0;
+}
+
+.overlay {
+	fill: none;
+	pointer-events:all;
+}
+
+.focus circle{
+	fill:steelblue;
+	stroke:steelblue;
+}
+
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+<script>
+
+//	grid lines from:
+//	http://www.d3noob.org/2013/01/adding-grid-lines-to-d3js-graph.html
+//	missing data from:
+//	http://bl.ocks.org/mbostock/3035090
+//	tool tips from:
+//	http://bl.ocks.org/Caged/6476579#index.html
+
+
+var margin = {top: 20, right: 80, bottom: 30, left: 50},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+//var parseDate = d3.time.format("%Y%m%d").parse;
+var parseDate = d3.time.format("%b-%d-%Y").parse;
+
+var x = d3.time.scale()
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var color = d3.scale.category10();
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var line = d3.svg.line()
+    .interpolate("basis")
+	.defined(function(d) { return !isNaN(d.rate);})
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.rate); });
+
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+//	grid lines
+function make_x_axis() {        
+    return d3.svg.axis()
+        .scale(x)
+         .orient("bottom")
+         .ticks(5)
+}
+
+function make_y_axis() {        
+    return d3.svg.axis()
+        .scale(y)
+        .orient("left")
+//        .ticks(5)
+}
+/////////////////////////////
+
+
+d3.json("/data", function(error, data) {
+  color.domain(d3.keys(data[0]).filter(function(key) { return key !== "date"; }));
+
+  data.forEach(function(d) {
+    d.date = parseDate(d.date);
+  });
+
+//	http://bl.ocks.org/mbostock/3902569
+  var	bisectDate	=d3.bisector(function(d) {return d.date;}).left
+
+  var units = color.domain().map(function(name) {
+    return {
+      name: name,
+      values: data.map(function(d) {
+        return {date: d.date, rate: +d[name]};
+      })
+    };
+  });
+
+
+	console.log(data[0])
+	var today=new Date();
+	var day	=today.getDate();
+	var	month=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][today.getMonth()]
+	var year=today.getFullYear();
+	var frmtdate=month+'-'+day+'-'+year
+
+//  x.domain(d3.extent(data, function(d) { return d.date; }));
+  x.domain([
+  			parseDate(frmtdate),
+			(d3.max(data, function(d) { return d.date; }))
+			]
+			);
+
+  y.domain([
+//    d3.min(units, function(c) { return d3.min(c.values, function(v) { return v.rate; }); }),
+	0.0,
+    d3.max(units, function(c) { return d3.max(c.values, function(v) { return v.rate; }); })
+  ]);
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Rate ($)");
+//	grid lines
+	svg.append("g")         
+        .attr("class", "grid")
+        .attr("transform", "translate(0," + height + ")")
+        .call(make_x_axis()
+            .tickSize(-height, 0, 0)
+            .tickFormat("")
+        )
+
+    svg.append("g")         
+        .attr("class", "grid")
+        .call(make_y_axis()
+            .tickSize(-width, 0, 0)
+            .tickFormat("")
+        )
+////////////////////////////////////////////////
+  var unit = svg.selectAll(".unit")
+      .data(units)
+    .enter().append("g")
+      .attr("class", "unit");
+
+  unit.append("path")
+      .attr("class", "line")
+      .attr("d", function(d) { return line(d.values); })
+      .style("stroke", function(d) { return color(d.name); })
+	
+
+	svg.append("rect")
+		.attr("class","overlay")
+		.attr("width",width)
+		.attr("height",height)
+		.on('mousemove', mousemove);
+
+  focus	=svg.append("g")
+  			.attr("class","focus")
+			.style("display","none");
+	
+	focus.append("circle")
+		.attr("r",10);
+	
+	focus.append("text")
+		.attr("x",-8)
+		.attr("y",3);
+//		.attr("dy",".35em");
+
+  function mousemove() 
+  {
+    var x0	=x.invert(d3.mouse(this)[0]);
+    var y0	=y.invert(d3.mouse(this)[1]);
+
+	var	i	=bisectDate(data,x0,1);
+
+	var	avg	=0;
+	var	total=0;
+	len	=data[i].length
+	for(var key in data[i])
+	{
+		if (data[i][key]==parseInt(data[i][key]))
+		{
+			avg		=avg + parseInt(data[i][key]);
+			total	=total+1.0;
+		}
+	}
+	avg	=parseInt(avg/total);
+
+//	console.log(x0,y0,x(data[i].date),y(avg));
+//	console.log(x0,y0,x(data[i].date),y(avg));
+	focus.style("display",null);
+	focus.attr("transform","translate("+x(data[i].date)+","+y(avg)+")");
+	focus.select("text").text(avg)
+  }
+});
+
+</script>

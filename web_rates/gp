@@ -1,0 +1,18 @@
+#
+set xdata time
+set timefmt "%b-%d-%Y"
+set datafile separator ","
+c=3
+plot \
+'460512.txt' u 1:c w l,\
+'129151.txt' u 1:c w l,\
+'567974.txt' u 1:c w l,\
+'242896.txt' u 1:c w l,\
+'369723.txt' u 1:c w l,\
+'364543.txt' u 1:c w l,\
+'225769.txt' u 1:c w l,\
+'424161.txt' u 1:c w l,\
+'500096.txt' u 1:c w l
+
+#'123233' u 1:c w l
+#'344972' u 1:c w l

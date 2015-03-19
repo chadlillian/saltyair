@@ -1,0 +1,28 @@
+date, city, temp
+20111001, New York,63.4
+20111002, New York,58
+20111003, New York,53.3
+20111004, New York,55.7
+20111005, New York,64.2
+20111006, New York,58.8
+20111007, New York,57.9
+20111008, New York,61.8
+20111009, New York,69.3
+20111001,San Francisco,62.7
+20111002,San Francisco,59.9
+20111003,San Francisco,59.1
+20111004,San Francisco,58.8
+20111005,San Francisco,58.7
+20111006,San Francisco,57
+20111007,San Francisco,56.7
+20111008,San Francisco,56.8
+20111009,San Francisco,56.7
+20111001,Austin,72.2
+20111002,Austin,67.7
+20111003,Austin,69.4
+20111004,Austin,68
+20111005,Austin,72.4
+20111006,Austin,77
+20111007,Austin,82.3
+20111008,Austin,78.9
+20111009,Austin,68.8
