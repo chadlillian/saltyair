@@ -1,0 +1,88 @@
+#!/home/chad/anaconda/bin/python
+
+import propertyStatsHTML as props
+from pymongo import MongoClient
+import time
+import datetime
+import vrbosearch as vb
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+#   query vrbo for all properties in the search defined by url
+def getvrbonumbers(url,database,collection):
+    a = vb.vrbosearch()
+    a.setup(database,collection)
+    a.reset()
+    a.searchLocation(url)
+    #w = a.getProperties()
+
+#   get unit ids for all units in the database,collection then query vrbo for stats
+def getpropertystats(database,collection):
+    link = 'https://www.vrbo.com/'
+    client = MongoClient()
+    db = client[database]
+    collection = db[collection]
+    a = collection.find()
+    unit = props.propertyStats()
+    for aa in a:
+        stats = unit.readProperty(link+str(aa[u'_id']))
+        collection.update_one({'_id':aa[u'_id']},{'$set':{'stats':stats}})
+        #print stats.keys() #stats['maxbeds'],stats['latitude'],stats['longitude']
+        print stats['maxbeds'],stats['latitude'],stats['longitude']
+
+def displaydatabasestats(database,collection):
+    client = MongoClient()
+    db = client[database]
+    collection = db[collection]
+    a = collection.find()
+    N = a.count()
+    print N
+    dfs = []
+    for aa in collection.find():
+        occ = zip(*aa['stats']['unitAvailability'].items())
+        a = pd.DataFrame(list(occ[1]),index=list(occ[0]))
+        dfs.append(a)
+    q = pd.concat(dfs,axis=1,join='outer')
+    q.to_csv('temp1')
+    q.replace({u'Y':0},inplace=True,regex=True) # Y means available ie not booked
+    q.replace({u'N':1},inplace=True,regex=True) # N means unavailable ie booked
+    q.to_csv('temp')
+    qq = q.sum(axis=1)/float(N)
+    datesf = [datetime.datetime.strptime(qqq, '%Y-%m-%d') for qqq in qq.index.values]
+    datesn = [mpl.dates.date2num(date) for date in datesf]
+
+    todayi = qq.index.searchsorted(time.strftime("%Y-%m-%d"))
+    plt.plot_date(datesn[todayi:todayi+365], qq.values[todayi:todayi+365],'b-')
+
+    plt.show()
+
+#DATABASE = 'VRBO_scenic_hwy_98'
+#COLLECTION = 'Properties'
+
+DATABASE = 'VRBO'
+location = 'usa/florida/north-west/destin/scenic-hwy-98'
+location = 'usa/florida/north-west/destin/scenic-gulf-dr-central-east'
+location = 'usa/florida/north-west/destin/scenic-gulf-dr-east/miramar-beach'
+COLLECTION = location
+coordquery = 'https://www.vrbo.com/vacation-rentals/usa/@30.404340141445452,-86.32295341787108,30.335026434476696,-86.38955803212889,13z?bedrooms=2&sleeps=1-plus'
+
+url = 'https://www.vrbo.com/vacation-rentals/'
+query = '?sleeps=1-plus'
+
+urlquery = url+location+query
+
+#time1 = time.time()
+#getvrbonumbers(urlquery,DATABASE,COLLECTION)
+#time2 = time.time()
+#print 'vrbo query ',time2-time1
+
+#time1 = time.time()
+#getpropertystats(DATABASE,COLLECTION)
+#time2 = time.time()
+#print 'property query ',time2-time1
+
+time1 = time.time()
+displaydatabasestats(DATABASE,COLLECTION)
+time2 = time.time()
+print 'database query ',time2-time1
